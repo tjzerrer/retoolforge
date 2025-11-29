@@ -100,7 +100,7 @@ function computeDeal(inputs) {
     totalCashInvested > 0 ? (annualCashFlow / totalCashInvested) * 100 : 0;
 
   // verdict
-  let verdictLabel = "Needs deeper analysis";
+  let verdictLabel = "Borderline — cash flow is thin";
   let verdictTone = "neutral";
 
   if (monthlyCashFlow > 0 && cashOnCashReturn >= 12) {
@@ -221,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailBtn = document.getElementById("emailReportBtn");
   const resetBtn = document.getElementById("resetBtn");
 
+  const cashFlowBlock = document.getElementById("cashFlowBlock");
   const cashFlowDisplay = document.getElementById("cashFlowDisplay");
   const cashFlowCaption = document.getElementById("cashFlowCaption");
   const cocDisplay = document.getElementById("cocDisplay");
@@ -257,6 +258,30 @@ document.addEventListener("DOMContentLoaded", () => {
     setValue("upfrontRepairs", last.upfrontRepairs);
   }
 
+  function applyCashFlowCardStyle(monthlyCashFlow) {
+    if (!cashFlowBlock) return;
+
+    cashFlowBlock.classList.remove(
+      "result-cash-neutral",
+      "result-cash-positive",
+      "result-cash-negative"
+    );
+
+    if (monthlyCashFlow < 0) {
+      cashFlowBlock.classList.add("result-cash-negative");
+      cashFlowCaption.textContent =
+        "Negative cash flow — be cautious. This deal would lose money each month on these assumptions.";
+    } else if (monthlyCashFlow > 0) {
+      cashFlowBlock.classList.add("result-cash-positive");
+      cashFlowCaption.textContent =
+        "Approximate monthly cash flow after mortgage and expenses.";
+    } else {
+      cashFlowBlock.classList.add("result-cash-neutral");
+      cashFlowCaption.textContent =
+        "Cash flow is roughly break-even. Small changes in rent or expenses could push this deal positive or negative.";
+    }
+  }
+
   function handleCalculate() {
     const inputs = {
       propertyLabel: document.getElementById("propertyLabel").value.trim(),
@@ -278,10 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const res = computeDeal(inputs);
 
     cashFlowDisplay.textContent = formatMoney(res.monthlyCashFlow);
-    cashFlowCaption.textContent =
-      res.monthlyCashFlow >= 0
-        ? "Approximate monthly cash flow after mortgage and expenses."
-        : "Negative cash flow — deeper analysis needed or adjust assumptions.";
+    applyCashFlowCardStyle(res.monthlyCashFlow);
 
     cocDisplay.textContent =
       res.cashOnCashReturn > 0 ? formatPercent(res.cashOnCashReturn) : "—";
@@ -306,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ? "This deal looks workable on paper. Stress-test your assumptions by lowering rent slightly or increasing expenses to see how sensitive the numbers are."
         : res.verdictTone === "weak"
         ? "This deal appears weak on today’s assumptions, especially on cash flow. Consider renegotiating price, improving terms, or moving on to a stronger deal."
-        : "Run this deal against a few different rent and expense scenarios to understand its risk and reward profile.";
+        : "Monthly cash flow looks tight on these assumptions. Small changes in rent or expenses could push this deal negative — dig into comps and real expenses before you commit.";
 
     // store summary for copy/email + persist inputs
     form.dataset.lastSummary = buildDealSummary(inputs.propertyLabel, res, inputs);
@@ -371,6 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cashFlowDisplay.textContent = "—";
     cashFlowCaption.textContent =
       "Enter numbers on the left and hit “Calculate” to see your cash flow.";
+
     cocDisplay.textContent = "—";
     cocCaption.textContent = "Annual cash flow ÷ total cash invested, before taxes.";
     capRateDisplay.textContent = "—";
@@ -378,9 +401,24 @@ document.addEventListener("DOMContentLoaded", () => {
     expenseBreakdown.textContent =
       "Mortgage, taxes, insurance, HOA, maintenance, and other expenses.";
     cashInvestedDisplay.textContent = "—";
+
     verdictTag.textContent = "Awaiting inputs";
     verdictText.textContent =
       "Once you calculate, you’ll see a quick summary of how this deal looks based on cash flow and cash-on-cash return.";
     verdictBlock.classList.remove("tone-strong", "tone-ok", "tone-weak", "tone-neutral");
+
+    if (cashFlowBlock) {
+      cashFlowBlock.classList.remove(
+        "result-cash-neutral",
+        "result-cash-positive",
+        "result-cash-negative"
+      );
+      cashFlowBlock.classList.add("result-cash-neutral");
+    }
   });
+
+  // On initial load, default cash-flow card to neutral look
+  if (cashFlowBlock) {
+    cashFlowBlock.classList.add("result-cash-neutral");
+  }
 });
