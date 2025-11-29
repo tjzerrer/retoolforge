@@ -1,24 +1,24 @@
-// rental-roi.js
+// tools/rental-roi.js
 // REToolForge – Rental ROI Calculator logic
 
-// ---------- Helpers to read inputs safely ----------
-
-function getTextValue(possibleIds) {
-  for (const id of possibleIds) {
-    const el = document.getElementById(id);
-    if (el) return el.value.trim();
-  }
-  return "";
+// ---------- helper functions ----------
+function asNumber(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const raw = el.value.trim();
+  const n = raw === "" ? 0 : Number(raw);
+  return isNaN(n) ? 0 : n;
 }
 
-function getNumberValue(possibleIds) {
-  const raw = getTextValue(possibleIds);
-  const num = parseFloat(raw);
-  return isNaN(num) ? 0 : num;
+function setValue(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (val === undefined || val === null) return;
+  el.value = val;
 }
 
-function formatMoney(value) {
-  const n = isNaN(value) ? 0 : value;
+function formatMoney(val) {
+  const n = isNaN(val) ? 0 : val;
   return n.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
@@ -26,396 +26,361 @@ function formatMoney(value) {
   });
 }
 
-function formatMoney2(value) {
-  const n = isNaN(value) ? 0 : value;
-  return n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatPercent(value) {
-  const n = isNaN(value) ? 0 : value;
+function formatPercent(val) {
+  const n = isNaN(val) ? 0 : val;
   return `${n.toFixed(1)}%`;
 }
-
-// ---------- Status chip for small inline messages ----------
 
 function showStatusChip(id, message, variant = "ok") {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = message;
-  el.classList.remove("status-ok", "status-error", "status-muted");
-  el.classList.add(
-    variant === "error" ? "status-error" :
-    variant === "muted" ? "status-muted" :
-    "status-ok"
-  );
+  el.className = "status-chip";
+  el.classList.add(variant === "error" ? "status-error" : "status-ok");
   el.classList.add("visible");
-  // Hide after 3 seconds
-  clearTimeout(el._hideTimer);
-  el._hideTimer = setTimeout(() => {
-    el.classList.remove("visible");
-  }, 3000);
+  setTimeout(() => el.classList.remove("visible"), 3000);
 }
 
-// ---------- Read all inputs from the form ----------
-
-function getInputs() {
-  return {
-    propertyLabel: getTextValue(["propertyLabel", "propertyNickname", "propertyName"]),
-    userEmail: getTextValue(["userEmail", "reportEmail", "email"]),
-    purchasePrice: getNumberValue(["purchasePrice"]),
-    downPaymentPercent: getNumberValue(["downPaymentPercent", "downPayment"]),
-    interestRate: getNumberValue(["interestRate"]),
-    loanTermYears: getNumberValue(["loanTermYears", "loanTerm"]),
-    monthlyRent: getNumberValue(["monthlyRent"]),
-    annualTaxes: getNumberValue(["annualTaxes", "annualPropertyTaxes"]),
-    annualInsurance: getNumberValue(["annualInsurance"]),
-    monthlyHOA: getNumberValue(["monthlyHOA"]),
-    maintenanceVacancyPercent: getNumberValue(["maintenanceVacancy", "maintenancePercent"]),
-    otherMonthlyExpenses: getNumberValue(["otherMonthlyExpenses", "otherMonthly"]),
-    closingCostsPercent: getNumberValue(["closingCostsPercent"]),
-    upfrontRepairs: getNumberValue(["upfrontRepairs"]),
-  };
-}
-
-// ---------- Core deal math ----------
-
+// ---------- math core ----------
 function computeDeal(inputs) {
   const {
     purchasePrice,
-    downPaymentPercent,
+    monthlyRent,
     interestRate,
     loanTermYears,
-    monthlyRent,
+    downPaymentPercent,
     annualTaxes,
     annualInsurance,
     monthlyHOA,
-    maintenanceVacancyPercent,
-    otherMonthlyExpenses,
+    maintenancePercent,
+    otherMonthly,
     closingCostsPercent,
     upfrontRepairs,
   } = inputs;
 
-  if (!purchasePrice || !monthlyRent) {
-    return null; // not enough data
-  }
-
-  // Down payment & loan
   const downPaymentAmount = purchasePrice * (downPaymentPercent / 100);
-  const loanAmount = Math.max(purchasePrice - downPaymentAmount, 0);
+  const loanAmount = purchasePrice - downPaymentAmount;
 
-  // Mortgage payment (simple amortizing loan)
   let monthlyMortgage = 0;
-  const r = interestRate / 100 / 12;
-  const n = loanTermYears * 12;
-  if (loanAmount > 0 && r > 0 && n > 0) {
-    const factor = Math.pow(1 + r, n);
-    monthlyMortgage = loanAmount * (r * factor) / (factor - 1);
+  if (loanAmount > 0 && interestRate > 0 && loanTermYears > 0) {
+    const r = interestRate / 100 / 12;
+    const n = loanTermYears * 12;
+    monthlyMortgage = (loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
   }
 
-  // Income & expenses
-  const grossMonthlyIncome = monthlyRent;
   const monthlyTaxes = annualTaxes / 12;
   const monthlyInsurance = annualInsurance / 12;
-  const maintVacancyMonthly = monthlyRent * (maintenanceVacancyPercent / 100);
+  const maintVacancy = monthlyRent * (maintenancePercent / 100);
 
   const totalMonthlyExpenses =
     monthlyMortgage +
     monthlyTaxes +
     monthlyInsurance +
     monthlyHOA +
-    maintVacancyMonthly +
-    otherMonthlyExpenses;
+    maintVacancy +
+    otherMonthly;
 
+  const grossMonthlyIncome = monthlyRent;
   const monthlyCashFlow = grossMonthlyIncome - totalMonthlyExpenses;
   const annualCashFlow = monthlyCashFlow * 12;
 
-  // NOI & cap rate
-  const annualOperatingExpenses =
-    annualTaxes +
-    annualInsurance +
-    monthlyHOA * 12 +
-    maintVacancyMonthly * 12 +
-    otherMonthlyExpenses * 12;
+  const annualNOI =
+    grossMonthlyIncome * 12 -
+    (annualTaxes +
+      annualInsurance +
+      monthlyHOA * 12 +
+      maintVacancy * 12 +
+      otherMonthly * 12);
 
-  const annualNOI = grossMonthlyIncome * 12 - annualOperatingExpenses;
   const capRate = purchasePrice > 0 ? (annualNOI / purchasePrice) * 100 : 0;
 
-  // Cash invested & cash-on-cash
   const closingCostsAmount = purchasePrice * (closingCostsPercent / 100);
-  const totalCashInvested =
-    downPaymentAmount + closingCostsAmount + upfrontRepairs;
-
-  const cashOnCash =
+  const totalCashInvested = downPaymentAmount + closingCostsAmount + upfrontRepairs;
+  const cashOnCashReturn =
     totalCashInvested > 0 ? (annualCashFlow / totalCashInvested) * 100 : 0;
 
-  // Verdict
+  // verdict
   let verdictLabel = "Needs deeper analysis";
-  let verdictTone = "caution";
+  let verdictTone = "neutral";
 
-  if (monthlyCashFlow > 0 && cashOnCash >= 12) {
+  if (monthlyCashFlow > 0 && cashOnCashReturn >= 12) {
     verdictLabel = "Strong on paper";
     verdictTone = "strong";
-  } else if (monthlyCashFlow >= 0 && cashOnCash >= 8) {
+  } else if (monthlyCashFlow >= 0 && cashOnCashReturn >= 8) {
     verdictLabel = "Decent, stress-test it";
-    verdictTone = "neutral";
+    verdictTone = "ok";
   } else if (monthlyCashFlow < 0) {
-    verdictLabel = "Negative cash flow";
+    verdictLabel = "Negative cash flow — be cautious";
     verdictTone = "weak";
   }
 
   return {
-    downPaymentAmount,
-    loanAmount,
     monthlyMortgage,
-    grossMonthlyIncome,
-    monthlyTaxes,
-    monthlyInsurance,
-    monthlyHOA,
-    maintVacancyMonthly,
-    otherMonthlyExpenses,
     totalMonthlyExpenses,
     monthlyCashFlow,
     annualCashFlow,
-    annualNOI,
     capRate,
-    closingCostsAmount,
     totalCashInvested,
-    cashOnCash,
+    cashOnCashReturn,
     verdictLabel,
     verdictTone,
+    maintVacancy,
   };
 }
 
-// ---------- Update the UI with result numbers ----------
-
-function updateResultUI(deal) {
-  if (!deal) return;
-
-  // These IDs should match your rental-roi.html
-  const cashFlowEl = document.getElementById("resultMonthlyCashFlow");
-  const cocEl = document.getElementById("resultCashOnCash");
-  const capRateEl = document.getElementById("resultCapRate");
-  const totalExpEl = document.getElementById("resultTotalExpenses");
-  const totalCashInvEl = document.getElementById("resultTotalCashInvested");
-  const verdictLabelEl = document.getElementById("dealVerdictLabel");
-  const verdictNoteEl = document.getElementById("dealVerdictNote");
-  const verdictPillEl = document.getElementById("dealVerdictPill");
-
-  if (cashFlowEl) cashFlowEl.textContent = formatMoney2(deal.monthlyCashFlow);
-  if (cocEl) cocEl.textContent = formatPercent(deal.cashOnCash);
-  if (capRateEl) capRateEl.textContent = formatPercent(deal.capRate);
-  if (totalExpEl) totalExpEl.textContent = formatMoney2(deal.totalMonthlyExpenses);
-  if (totalCashInvEl) totalCashInvEl.textContent = formatMoney2(deal.totalCashInvested);
-
-  if (verdictLabelEl) verdictLabelEl.textContent = deal.verdictLabel;
-
-  if (verdictNoteEl) {
-    if (deal.verdictTone === "strong") {
-      verdictNoteEl.textContent =
-        "Shows positive cash flow and double-digit cash-on-cash. Verify rehab, vacancy, market trends, and reserves before moving forward.";
-    } else if (deal.verdictTone === "neutral") {
-      verdictNoteEl.textContent =
-        "Looks workable, but tweak rent, rehab, or expenses and see how sensitive the deal is.";
-    } else if (deal.verdictTone === "weak") {
-      verdictNoteEl.textContent =
-        "Negative cash flow – consider a lower price, better terms, or a different strategy.";
-    } else {
-      verdictNoteEl.textContent =
-        "Review your assumptions carefully and run a few what-if scenarios.";
-    }
-  }
-
-  if (verdictPillEl) {
-    verdictPillEl.classList.remove("pill-strong", "pill-neutral", "pill-weak", "pill-caution");
-    const cls =
-      deal.verdictTone === "strong" ? "pill-strong" :
-      deal.verdictTone === "neutral" ? "pill-neutral" :
-      deal.verdictTone === "weak" ? "pill-weak" :
-      "pill-caution";
-    verdictPillEl.classList.add(cls);
-  }
-}
-
-// ---------- Build a plain-text deal summary (for copy/email) ----------
-
-function buildDealSummary(inputs, deal, options = {}) {
+function buildDealSummary(propertyLabel, res, inputs) {
   const {
-    includeBreakdown = true,
-    includeVerdictNotes = true,
-    includeStrategyTips = true,
-  } = options;
+    monthlyCashFlow,
+    annualCashFlow,
+    totalMonthlyExpenses,
+    capRate,
+    totalCashInvested,
+    cashOnCashReturn,
+    verdictLabel,
+  } = res;
 
   const lines = [];
 
-  const label = inputs.propertyLabel || "Rental property";
-  lines.push(`REToolForge Rental ROI Report – ${label}`);
-  lines.push("--------------------------------------------------");
-  lines.push(`Purchase price: ${formatMoney(inputs.purchasePrice)}`);
-  lines.push(`Down payment: ${inputs.downPaymentPercent}% (${formatMoney2(deal.downPaymentAmount)})`);
-  lines.push(`Loan term: ${inputs.loanTermYears} years at ${inputs.interestRate}% APR`);
+  lines.push(`REToolForge Rental ROI Report`);
+  lines.push(`--------------------------------`);
+  if (propertyLabel) lines.push(`Property: ${propertyLabel}`);
   lines.push("");
-  lines.push(`Monthly rent: ${formatMoney2(inputs.monthlyRent)}`);
-  lines.push(`Monthly cash flow: ${formatMoney2(deal.monthlyCashFlow)}`);
-  lines.push(`Cash-on-cash return: ${formatPercent(deal.cashOnCash)}`);
-  lines.push(`Cap rate: ${formatPercent(deal.capRate)}`);
-  lines.push(`Total cash invested: ${formatMoney2(deal.totalCashInvested)}`);
+  lines.push(`Monthly cash flow: ${formatMoney(monthlyCashFlow)}`);
+  lines.push(`Annual cash flow: ${formatMoney(annualCashFlow)}`);
+  lines.push(`Cash-on-cash return: ${formatPercent(cashOnCashReturn)}`);
+  lines.push(`Cap rate: ${formatPercent(capRate)}`);
+  lines.push(`Total monthly expenses: ${formatMoney(totalMonthlyExpenses)}`);
+  lines.push(`Total cash invested: ${formatMoney(totalCashInvested)}`);
   lines.push("");
-
-  if (includeBreakdown) {
-    lines.push("Income & expense breakdown (est.):");
-    lines.push(`  • Mortgage: ${formatMoney2(deal.monthlyMortgage)}`);
-    lines.push(`  • Taxes: ${formatMoney2(deal.monthlyTaxes)}`);
-    lines.push(`  • Insurance: ${formatMoney2(deal.monthlyInsurance)}`);
-    lines.push(`  • HOA: ${formatMoney2(deal.monthlyHOA)}`);
-    lines.push(`  • Maintenance & vacancy: ${formatMoney2(deal.maintVacancyMonthly)}`);
-    lines.push(`  • Other expenses: ${formatMoney2(deal.otherMonthlyExpenses)}`);
-    lines.push(`  • Total expenses: ${formatMoney2(deal.totalMonthlyExpenses)}`);
-    lines.push("");
-  }
-
-  if (includeVerdictNotes) {
-    lines.push(`Deal verdict: ${deal.verdictLabel}`);
-    lines.push("");
-  }
-
-  if (includeStrategyTips) {
-    lines.push("Strategy notes & ideas:");
-    lines.push("  • Compare this deal to at least 2–3 others using the same assumptions.");
-    lines.push("  • Stress-test the deal by lowering rent and raising expenses slightly.");
-    lines.push("  • Decide whether your priority is cash flow, appreciation, or a mix.");
-    lines.push("");
-    lines.push("Remember: These numbers are estimates and do not replace advice from a licensed real estate, lending, or tax professional.");
-  }
+  lines.push(`Verdict: ${verdictLabel}`);
+  lines.push("");
+  lines.push(`Key assumptions:`);
+  lines.push(
+    `• Purchase price: ${formatMoney(inputs.purchasePrice)} | Rent: ${formatMoney(
+      inputs.monthlyRent
+    )}`
+  );
+  lines.push(
+    `• Interest: ${inputs.interestRate}% | Term: ${inputs.loanTermYears} years | Down payment: ${inputs.downPaymentPercent}%`
+  );
+  lines.push(
+    `• Taxes: ${formatMoney(inputs.annualTaxes)} /yr | Insurance: ${formatMoney(
+      inputs.annualInsurance
+    )} /yr`
+  );
+  lines.push(
+    `• Maintenance + vacancy: ${inputs.maintenancePercent}% of rent | Other monthly: ${formatMoney(
+      inputs.otherMonthly
+    )}`
+  );
+  lines.push(
+    `• Closing costs: ${inputs.closingCostsPercent}% | Upfront repairs: ${formatMoney(
+      inputs.upfrontRepairs
+    )}`
+  );
+  lines.push("");
+  lines.push(
+    `Use this as a quick screening tool only. Adjust assumptions for your market before making decisions.`
+  );
 
   return lines.join("\n");
 }
 
-// ---------- Event wiring ----------
+// ---------- persistence ----------
+const STORAGE_KEY = "rentalROI-lastInputs";
 
+function saveLastInputs(inputs) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        ...inputs,
+        savedAt: new Date().toISOString(),
+      })
+    );
+  } catch (e) {
+    // ignore; storage is a bonus feature
+  }
+}
+
+function loadLastInputs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+// ---------- UI wiring ----------
 document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("rentalForm");
   const calcBtn = document.getElementById("calculateBtn");
-  const resetBtn = document.getElementById("resetBtn");
   const copyBtn = document.getElementById("copySummaryBtn");
   const emailBtn = document.getElementById("emailReportBtn");
+  const resetBtn = document.getElementById("resetBtn");
 
-  if (calcBtn) {
-    calcBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const inputs = getInputs();
-      const deal = computeDeal(inputs);
-      if (!deal) {
-        showStatusChip("calcStatus", "Enter at least price & rent.", "error");
-        return;
-      }
-      updateResultUI(deal);
-      showStatusChip("calcStatus", "Numbers updated.", "ok");
-    });
+  const cashFlowDisplay = document.getElementById("cashFlowDisplay");
+  const cashFlowCaption = document.getElementById("cashFlowCaption");
+  const cocDisplay = document.getElementById("cocDisplay");
+  const cocCaption = document.getElementById("cocCaption");
+  const capRateDisplay = document.getElementById("capRateDisplay");
+  const expensesDisplay = document.getElementById("expensesDisplay");
+  const expenseBreakdown = document.getElementById("expenseBreakdown");
+  const cashInvestedDisplay = document.getElementById("cashInvestedDisplay");
+  const verdictBlock = document.getElementById("verdictBlock");
+  const verdictTag = document.getElementById("verdictTag");
+  const verdictText = document.getElementById("verdictText");
+
+  if (!form || !calcBtn) {
+    console.error("Rental ROI form or calculate button not found.");
+    return;
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const form = document.querySelector("form");
-      if (form) form.reset();
-      showStatusChip("calcStatus", "Inputs reset.", "muted");
-    });
+  // Restore last inputs if available
+  const last = loadLastInputs();
+  if (last) {
+    setValue("propertyLabel", last.propertyLabel || "");
+    setValue("userEmail", last.userEmail || "");
+    setValue("purchasePrice", last.purchasePrice);
+    setValue("downPayment", last.downPaymentPercent);
+    setValue("interestRate", last.interestRate);
+    setValue("loanTerm", last.loanTermYears);
+    setValue("monthlyRent", last.monthlyRent);
+    setValue("annualTaxes", last.annualTaxes);
+    setValue("annualInsurance", last.annualInsurance);
+    setValue("monthlyHOA", last.monthlyHOA);
+    setValue("maintenancePercent", last.maintenancePercent);
+    setValue("otherMonthly", last.otherMonthly);
+    setValue("closingCostsPercent", last.closingCostsPercent);
+    setValue("upfrontRepairs", last.upfrontRepairs);
   }
 
-  if (copyBtn) {
-    copyBtn.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const inputs = getInputs();
-      const deal = computeDeal(inputs);
-      if (!deal) {
-        showStatusChip("copyStatus", "Run the calculator first.", "error");
-        return;
-      }
+  function handleCalculate() {
+    const inputs = {
+      propertyLabel: document.getElementById("propertyLabel").value.trim(),
+      userEmail: document.getElementById("userEmail").value.trim(),
+      purchasePrice: asNumber("purchasePrice"),
+      downPaymentPercent: asNumber("downPayment"),
+      interestRate: asNumber("interestRate"),
+      loanTermYears: asNumber("loanTerm"),
+      monthlyRent: asNumber("monthlyRent"),
+      annualTaxes: asNumber("annualTaxes"),
+      annualInsurance: asNumber("annualInsurance"),
+      monthlyHOA: asNumber("monthlyHOA"),
+      maintenancePercent: asNumber("maintenancePercent"),
+      otherMonthly: asNumber("otherMonthly"),
+      closingCostsPercent: asNumber("closingCostsPercent"),
+      upfrontRepairs: asNumber("upfrontRepairs"),
+    };
 
-      const includeBreakdown =
-        document.getElementById("includeBreakdown")?.checked ?? true;
-      const includeVerdictNotes =
-        document.getElementById("includeVerdictNotes")?.checked ?? true;
-      const includeStrategyTips =
-        document.getElementById("includeStrategyTips")?.checked ?? true;
+    const res = computeDeal(inputs);
 
-      const summary = buildDealSummary(inputs, deal, {
-        includeBreakdown,
-        includeVerdictNotes,
-        includeStrategyTips,
-      });
+    cashFlowDisplay.textContent = formatMoney(res.monthlyCashFlow);
+    cashFlowCaption.textContent =
+      res.monthlyCashFlow >= 0
+        ? "Approximate monthly cash flow after mortgage and expenses."
+        : "Negative cash flow — deeper analysis needed or adjust assumptions.";
 
-      try {
-        await navigator.clipboard.writeText(summary);
-        showStatusChip("copyStatus", "Deal summary copied.", "ok");
-      } catch (err) {
-        console.error("Clipboard error:", err);
-        showStatusChip("copyStatus", "Could not copy to clipboard.", "error");
-      }
-    });
+    cocDisplay.textContent =
+      res.cashOnCashReturn > 0 ? formatPercent(res.cashOnCashReturn) : "—";
+    cocCaption.textContent = "Annual cash flow ÷ total cash invested, before taxes.";
+
+    capRateDisplay.textContent = res.capRate > 0 ? formatPercent(res.capRate) : "—";
+
+    expensesDisplay.textContent = formatMoney(res.totalMonthlyExpenses);
+    expenseBreakdown.textContent =
+      "Includes mortgage, taxes, insurance, HOA, maintenance, and other expenses.";
+
+    cashInvestedDisplay.textContent = formatMoney(res.totalCashInvested);
+
+    verdictTag.textContent = res.verdictLabel;
+    verdictBlock.classList.remove("tone-strong", "tone-ok", "tone-weak", "tone-neutral");
+    verdictBlock.classList.add(`tone-${res.verdictTone}`);
+
+    verdictText.textContent =
+      res.verdictTone === "strong"
+        ? "This deal shows positive monthly cash flow and a double-digit cash-on-cash return. Still, verify rents, rehab, and vacancy with local data before moving forward."
+        : res.verdictTone === "ok"
+        ? "This deal looks workable on paper. Stress-test your assumptions by lowering rent slightly or increasing expenses to see how sensitive the numbers are."
+        : res.verdictTone === "weak"
+        ? "This deal appears weak on today’s assumptions, especially on cash flow. Consider renegotiating price, improving terms, or moving on to a stronger deal."
+        : "Run this deal against a few different rent and expense scenarios to understand its risk and reward profile.";
+
+    // store summary for copy/email + persist inputs
+    form.dataset.lastSummary = buildDealSummary(inputs.propertyLabel, res, inputs);
+    saveLastInputs(inputs);
   }
 
-  if (emailBtn) {
-    emailBtn.addEventListener("click", async (e) => {
-      e.preventDefault();
-      const inputs = getInputs();
-      const deal = computeDeal(inputs);
+  // Click handler for calculate
+  calcBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    handleCalculate();
+  });
 
-      if (!deal) {
-        showStatusChip("emailStatus", "Run the calculator first.", "error");
-        return;
-      }
+  // Also catch Enter key on the form
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleCalculate();
+  });
 
-      const email = (inputs.userEmail || "").trim();
-      if (!email) {
-        showStatusChip("emailStatus", "Enter an email address above.", "error");
-        return;
-      }
+  // Copy summary
+  copyBtn.addEventListener("click", async () => {
+    const summary = form.dataset.lastSummary;
+    if (!summary) {
+      showStatusChip("copyStatus", "Run the calculator first.", "error");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(summary);
+      showStatusChip("copyStatus", "Copied deal summary.", "ok");
+    } catch (err) {
+      console.error(err);
+      showStatusChip("copyStatus", "Could not copy to clipboard.", "error");
+    }
+  });
 
-      // Try to subscribe via Vercel backend (Beehiiv)
-      try {
-        await fetch("/api/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        showStatusChip("emailStatus", "Subscribed. Opening email app…", "ok");
-      } catch (err) {
-        console.error("Subscribe failed:", err);
-        showStatusChip(
-          "emailStatus",
-          "Could not subscribe, but opening email app…",
-          "error"
-        );
-      }
+  // Email summary (via user’s email client)
+  emailBtn.addEventListener("click", () => {
+    const summary = form.dataset.lastSummary;
+    const email = document.getElementById("userEmail").value.trim();
 
-      const includeBreakdown =
-        document.getElementById("includeBreakdown")?.checked ?? true;
-      const includeVerdictNotes =
-        document.getElementById("includeVerdictNotes")?.checked ?? true;
-      const includeStrategyTips =
-        document.getElementById("includeStrategyTips")?.checked ?? true;
+    if (!summary) {
+      showStatusChip("emailStatus", "Run the calculator first.", "error");
+      return;
+    }
+    if (!email) {
+      showStatusChip("emailStatus", "Add an email address above.", "error");
+      return;
+    }
 
-      const summary = buildDealSummary(inputs, deal, {
-        includeBreakdown,
-        includeVerdictNotes,
-        includeStrategyTips,
-      });
+    const subject = encodeURIComponent("REToolForge Rental ROI Report");
+    const body = encodeURIComponent(summary);
+    const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
 
-      const subject = `REToolForge Rental ROI Report – ${
-        inputs.propertyLabel || "Property"
-      }`;
+    showStatusChip("emailStatus", "Opening email draft…", "ok");
+  });
 
-      const mailtoUrl = `mailto:${encodeURIComponent(
-        email
-      )}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
-        summary
-      )}`;
+  // Reset inputs (but keep last saved in localStorage until next calculate)
+  resetBtn.addEventListener("click", () => {
+    form.reset();
+    form.dataset.lastSummary = "";
 
-      window.location.href = mailtoUrl;
-    });
-  }
+    cashFlowDisplay.textContent = "—";
+    cashFlowCaption.textContent =
+      "Enter numbers on the left and hit “Calculate” to see your cash flow.";
+    cocDisplay.textContent = "—";
+    cocCaption.textContent = "Annual cash flow ÷ total cash invested, before taxes.";
+    capRateDisplay.textContent = "—";
+    expensesDisplay.textContent = "—";
+    expenseBreakdown.textContent =
+      "Mortgage, taxes, insurance, HOA, maintenance, and other expenses.";
+    cashInvestedDisplay.textContent = "—";
+    verdictTag.textContent = "Awaiting inputs";
+    verdictText.textContent =
+      "Once you calculate, you’ll see a quick summary of how this deal looks based on cash flow and cash-on-cash return.";
+    verdictBlock.classList.remove("tone-strong", "tone-ok", "tone-weak", "tone-neutral");
+  });
 });
