@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <title>Rental ROI Calculator – REToolForge</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="../styles.css" />
+
+  <!-- Global stylesheet (absolute path so it works everywhere) -->
+  <link rel="stylesheet" href="/styles.css" />
+
 </head>
 
 <body>
@@ -19,9 +22,9 @@
         </div>
       </div>
       <nav class="nav-links">
-        <a href="../index.html" class="nav-link">🏠 Home</a>
-        <a href="../index.html#tools" class="nav-link">All tools</a>
-        <a href="../index.html#newsletter" class="nav-link">The Forge Briefing</a>
+        <a href="/index.html" class="nav-link">🏠 Home</a>
+        <a href="/index.html#tools" class="nav-link">All tools</a>
+        <a href="/index.html#newsletter" class="nav-link">The Forge Briefing</a>
       </nav>
     </header>
 
@@ -230,10 +233,9 @@
 
           <!-- Actions -->
           <div class="tool-actions">
-            <button type="button" id="calculateBtn" class="btn btn-primary">
-  Calculate rental ROI
-</button>
-
+            <button type="submit" class="btn btn-primary">
+              Calculate rental ROI
+            </button>
             <button type="button" class="btn" id="copySummaryBtn">
               Copy deal summary
             </button>
@@ -245,7 +247,7 @@
             </button>
           </div>
 
-          <!-- Status chips -->
+          <!-- Status chips (subtle feedback, no popups) -->
           <div class="tool-status-row">
             <span id="copyStatus" class="status-chip"></span>
             <span id="emailStatus" class="status-chip"></span>
@@ -260,6 +262,7 @@
       </section>
 
       <!-- RIGHT: Results -->
+            <!-- RIGHT: Results -->
       <aside class="tool-card-side">
         <div class="tool-header">
           <div class="pill pill-compact">
@@ -273,10 +276,13 @@
           </p>
         </div>
 
+        <!-- Results stack in a single column inside the card -->
         <div id="resultsContainer" class="results-grid">
-          <<!-- AFTER -->
-            <div class="result-block result-highlight" id="cashFlowBlock">
-            <div class="result-label">Monthly cash flow</div>
+          <div class="result-block" id="cashFlowBlock">
+            <div class="result-label">
+              <span class="result-dot"></span>
+              Monthly cash flow
+            </div>
             <div class="result-value" id="cashFlowDisplay">—</div>
             <div class="result-caption" id="cashFlowCaption">
               Enter numbers on the left and hit “Calculate” to see your cash flow.
@@ -324,6 +330,7 @@
           </div>
         </div>
 
+        <!-- This explainer stays INSIDE the same side card, under the results -->
         <div class="tool-explainer">
           <h3 class="tool-explainer-title">How to use this</h3>
           <ul class="tool-explainer-list">
@@ -343,13 +350,14 @@
           </ul>
         </div>
       </aside>
+
     </main>
 
     <footer>
       <span>&copy; <span id="year"></span> REToolForge. All rights reserved.</span>
       <span>
         Built for real estate decisions. Back to
-        <a href="../index.html">home</a>.
+        <a href="/index.html">home</a>.
       </span>
     </footer>
   </div>
@@ -360,3 +368,4 @@
   <script src="rental-roi.js" defer></script>
 </body>
 </html>
+
