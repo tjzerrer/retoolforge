@@ -129,6 +129,308 @@ a:hover {
   box-shadow: 0 10px 26px rgba(34, 197, 94, 0.55);
 }
 
+/* ========== HOMEPAGE HERO ========== */
+.hero {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.hero-main {
+  background: radial-gradient(circle at top left, #020617, #020617 70%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  padding: 20px 22px 22px;
+}
+
+.hero-title {
+  margin-top: 12px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+.hero-title span {
+  color: #e5e7eb;
+}
+
+.hero-subtitle {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.hero-meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #e5e7eb;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hero-footnote {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Right-hand hero side card */
+.hero-side {
+  background: radial-gradient(circle at top left, #020617, #020617 70%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.hero-side-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #9ca3af;
+  margin-bottom: 6px;
+}
+
+.hero-side-stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.hero-side-stat .value {
+  font-weight: 600;
+}
+
+.hero-side-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.hero-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  font-size: 11px;
+  color: #e5e7eb;
+}
+
+/* ========== HOMEPAGE SECTIONS (AUDIENCES + TOOLS + NEWSLETTER) ========== */
+
+.section-title {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.section-subtitle {
+  max-width: 700px;
+  line-height: 1.6;
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+
+/* Audience cards */
+#audiences {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(55, 65, 81, 0.7);
+}
+
+.audience-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.aud-card {
+  background: radial-gradient(circle at top left, #020617, #020617 70%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px 16px;
+  font-size: 13px;
+}
+
+.aud-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9ca3af;
+}
+
+.aud-name {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.aud-text {
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.aud-tools {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.aud-btn {
+  margin-top: 10px;
+}
+
+/* Tools section "chapter break" */
+.tools-section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(55, 65, 81, 0.7);
+}
+
+/* Tool cards */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.tool-card {
+  background: radial-gradient(circle at top left, #020617, #020617 70%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  padding: 14px 16px 16px;
+  font-size: 13px;
+}
+
+.tool-pill {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.tool-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tool-text {
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.tool-meta {
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.tool-card p {
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+/* Newsletter section */
+.newsletter {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px dashed rgba(55, 65, 81, 0.8);
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  font-size: 13px;
+}
+
+.newsletter-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.newsletter-text {
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.newsletter-list {
+  list-style: disc;
+  padding-left: 18px;
+  margin-bottom: 10px;
+}
+.newsletter-list li + li {
+  margin-top: 4px;
+}
+
+.newsletter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.newsletter-input {
+  flex: 1 1 200px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.82);
+  color: #e5e7eb;
+  font-size: 13px;
+}
+
+.newsletter-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.newsletter-side {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.newsletter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.newsletter-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+
 /* ========== TOOL LAYOUT ========== */
 .tool-layout {
   display: grid;
@@ -196,6 +498,14 @@ a:hover {
   font-size: 12px;
   color: #9ca3af;
 }
+
+/* ----- Homepage tools section ----- */
+.tools-section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(55, 65, 81, 0.7); /* subtle divider above tools */
+}
+
 
 /* ========== FORM SECTIONS ========== */
 .tool-section {
@@ -553,4 +863,65 @@ footer {
 .tool-card-side {
   display: flex;
   flex-direction: column;
+}
+
+/* ACTIVE nav link */
+.nav-link.nav-active {
+  background: radial-gradient(circle at top left, #22c55e, #14532d 72%);
+  border-color: rgba(34, 197, 94, 0.95);
+  color: #ecfdf5 !important;
+  box-shadow: 0 10px 26px rgba(34, 197, 94, 0.55);
+}
+
+/* Make in-page anchor links account for the sticky top nav */
+#tools,
+#audiences,
+#newsletter {
+  scroll-margin-top: 120px;  /* tweak this value until it feels right */
+}
+
+/* Optional: smooth scroll for a nicer feel */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Smooth scroll for in-page links like #tools, #audiences, #newsletter */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Account for sticky top nav when jumping to anchors */
+#tools,
+#audiences,
+#newsletter {
+  scroll-margin-top: 120px; /* adjust if you want more/less space */
+}
+
+.section-title {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.section-subtitle {
+  max-width: 700px;          /* keeps text from stretching too wide */
+  line-height: 1.6;          /* easier reading */
+  color: #9ca3af;            /* softer than pure white */
+  font-size: 14px;
+  margin-bottom: 18px;       /* space before the grid/cards */
+}
+
+/* Tool cards in the homepage tools grid */
+.tools-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.tool-card p {
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+
+.tool-card .tool-meta {
+  color: #9ca3af;
+  font-size: 13px;
 }

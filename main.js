@@ -22,3 +22,16 @@ if (newsletterForm) {
     newsletterForm.reset();
   });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  const links = document.querySelectorAll(".nav-link");
+
+  links.forEach(link => {
+    const href = link.getAttribute("href");
+
+    if (href === window.location.pathname ||
+        href === window.location.pathname + window.location.hash) {
+      link.classList.add("nav-active");
+    }
+  });
+});
